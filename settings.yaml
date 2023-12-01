@@ -1,2 +1,11 @@
 FileNames: #This is the name of the files to be used / generated
   
+  #Names of the file with random first and last names. 
+  FirstNameFile: "fn.txt"
+  LastNameFile: "ln.txt"
+
+  #Name of CSV File to be genereted, if CSV_Enabled:True
+  CSVFileName: "playerList.csv"
+
+  #Name of SQLite File to be generated, if SQL_Enabled:True
+  SQLFileName: "playerList.sql"
