@@ -1,7 +1,11 @@
+#!/bin/env python
+
 import random
 import math
 import time
 import csv  
+import tqdm
+
 
 class athleteStats:
     def __init__(self,weights,posID):
@@ -46,6 +50,9 @@ class athleteStats:
         b = max - min
         c = maxRating - minRating
         self.newFinalRating = (((a/b)*c)+minRating)
+        
+    def getStats(self):
+        return self.statList
 
 class Athlete:
     def __init__(self, id, firstName, lastName):
@@ -102,6 +109,16 @@ class Athlete:
         print("id: %4d | %12s %-12s | pos: %-10s (%d) " % (self.id, self.firstName, self.lastName, self.position, self.posID), end="")
         self.stats.printStats()
         
+    def returnStats(self):
+        # ["FirstName","LastName","Position","FinalRating","Acc","Speed","Power","Accuracy",
+        # "Penalty","ShortPass","LongPass","Agility","Control","Strength","Stealing"]
+        currLine = [self.firstName,self.lastName,self.getPosition(),round(self.stats.newFinalRating,3)]
+        for stats in self.stats.getStats():
+            currLine.append(stats)
+            
+        return currLine
+        
+        
     
 def getNameList():
     firstNameTxt = "fn.txt"
@@ -124,37 +141,44 @@ def getNameList():
     
     return fnList, lnList
 
-def writeToFile(listOfAthletes):
-    try:
-        nameOfFile = "playerList.csv"
-        writeMode = 'w'
-        with open(nameOfFile,writeMode) as csvFile:
-                fileWriter = csv.writer(csvFile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                fileWriter.writerow(["FirstName","LastName","Position","FinalRating","Acc","Speed","Power","Accuracy","Penalty","ShortPass","LongPass","Agility","Control","Strength","Stealing"])
-    except:
-        print("Failed to create CSV File.")
-        return
-    finally: 
-        print("\nSuccessfully Created CSV File (%s)" % nameOfFile)
+def writeToFile(listOfAthletes,nameUnit,barFormat,nameOfFile):
+    writeMode = 'w'
+    newLineChar = ''
+    with open(nameOfFile,writeMode,newline=newLineChar) as csvFile:
+        fileWriter = csv.writer(csvFile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        fileWriter.writerow(["FirstName","LastName","Position","FinalRating","Acc","Speed","Power","Accuracy","Penalty","ShortPass","LongPass","Agility","Control","Strength","Stealing"])
+        for athlete in tqdm.tqdm(listOfAthletes, desc="%40s" % "Adding Athletes to CSV File", unit=nameUnit, bar_format=barFormat):
+            fileWriter.writerow(athlete.returnStats())
+        
 def main():
+    startTime = time.time()
     fnList, lnList = getNameList()
-    numOfAthletes = 10000
+    nameOfCSVFile = "playerList.csv"
+    numOfAthletes = 20000
     listOfAthletes = []
+    nameUnit = " Athletes"
+    numBars = 20
+    barFormat = '{l_bar}{bar:%d}{r_bar}{bar:-%db}' % (numBars,numBars)
     
-    for n in range(numOfAthletes):
+    for n in tqdm.trange(numOfAthletes, desc="%40s" % "Generating Athletes with Random Names", unit=nameUnit, bar_format=barFormat):
         listOfAthletes.append(Athlete(n, random.choice(fnList), random.choice(lnList)))
 
     finalStats = []
-    for athlete in listOfAthletes:
+    for athlete in tqdm.tqdm(listOfAthletes,desc="%40s" % "Adjusting Athletes Overall Rating", unit=nameUnit, bar_format=barFormat):
         finalStats.append(athlete.stats.getOldRating())
 
-    minRating = 40
-    maxRating = 99
-    for athlete in listOfAthletes:
+    minRating = 45
+    maxRating = 93
+    for n in tqdm.trange(numOfAthletes, desc="%40s" % "Adjusting Athletes Final Stats", unit=nameUnit, bar_format=barFormat):
+        athlete = listOfAthletes[n]
         athlete.adjustStats(min(finalStats),max(finalStats),minRating,maxRating)
-        athlete.printInfo()
-        
-    writeToFile(listOfAthletes)
+    
+    try:
+        writeToFile(listOfAthletes,nameUnit,barFormat,nameOfCSVFile)
+    except Exception as E:
+        print("Error while creating CSV File (%s)" % E)
+    finally:
+        print("\nSuccesfully Created CSV File (%s) in %.3f Seconds!" % (nameOfCSVFile,time.time() - startTime))
     
         
 if __name__ == "__main__":
